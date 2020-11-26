@@ -19,4 +19,43 @@ def get_product_links():
     items = r.html.find('#shop-scroller', first=True).find('li')
     return items, session
 
+def get_matched_and_available(target_name):
+    '''
+    Given a target name, filter the product on main page,
+    and return links to products with available items
+
+    checked_urls: if already checked (and not a match in product name),
+    skip in future checked_urls
+
+    Exactly how this should work, depends on how the drop works - is the page already there,
+    just not for sale yet? Or page is added at drop time?
+    '''
+
+    target_name_list = [x.lower() for x in target_name.split(' ')]
+    potential_urls = []
+    items, session = get_product_links()
+    for item in items:
+        target_url = base_url + item.find('a', first=True).attrs['href']
+        r = session.get(target_url)
+        product_name = r.html.find('h2[itemprop=name]', first=True).text.lower()
+        found = True
+        for q in target_name_list:
+            if q not in product_name:
+                found = False
+                break
+        print('*****************')
+        if found:
+            print(f'Found a match: {product_name}')
+            # check if you can buy
+            if check_can_buy(r):
+                print('Still available')
+                potential_urls.append(target_url)
+            else:
+                print('No longer available')
+
+        else:
+            print(f'Not a match: {product_name}')
+
+    return potential_urls
+
 print("Test")
