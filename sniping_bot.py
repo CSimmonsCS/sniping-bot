@@ -58,4 +58,68 @@ def get_matched_and_available(target_name):
 
     return potential_urls
 
+def check_can_buy(r):
+    '''
+    Given a page (returned by session.get(target_url)),
+    find if there is such a html code within:
+    <input type="submit" name="commit" value="add to cart" class="button" >
+    Returns True if so, False if not
+    '''
+    buy_btn = r.html.find('input[value="add to cart"]', first=True)
+    return (buy_btn is not None)
+
+
+def perform_purchase(url):
+    '''
+    Given url of product, add to cart then checkout
+    '''
+
+    driver = webdriver.Chrome()
+    # url = "https://www.supremenewyork.com/shop/shirts/p4skltm3i" #a redirect to a login page occurs
+    btn = driver.find_element_by_id('add-remove-buttons').find_element_by_tag_name('input')
+    if len(btn) == 0:
+        print('not available, DONE')
+        return
+
+    btn[0].click()
+    time.sleep(1)
+
+    # go to checkout
+    checkout_url = 'https://www.supremenewyork.com/checkout'
+    driver.get(checkout_url)
+    # fill in form
+    driver.find_element_by_id('order_billing_name').send_keys(config.NAME)
+    driver.find_element_by_id('order_email').send_keys(config.EMAIL)
+    driver.find_element_by_id('order_tel').send_keys(config.PHONE)
+    driver.find_element_by_id('bo').send_keys(config.ADDRESS)
+    driver.find_element_by_id('order_billing_zip').send_keys(config.ZIPCODE)
+    driver.find_element_by_id('order_billing_city').send_keys(config.CITY)
+    driver.find_element_by_id('rnsnckrn').send_keys(config.CREDIT_CARD)
+    driver.find_element_by_id('orcer').send_keys(config.CC_CVV)
+    # driver.find_element_by_id('order_terms').click()
+    # driver.find_element_by_id('store_address').click()
+
+    # remove overlay
+    ins_tags = driver.find_element_by_tag_name('ins')
+    for el in ins_tags:
+        el.click()
+
+    # selections
+    # driver.find_element_by_id('order_billing_state').send_keys(config.STATE)
+    # driver.find_element_by_id('credit_card_month').send_keys(config.CC_MONTH)
+    # driver.find_element_by_id('credit_card_year').send_keys(config.CC_YEAR)
+
+    select = Select(driver.find_element_by_id('order_billing_state'))
+    select.select_by_value(config.STATE)
+    select = Select(driver.find_element_by_id('credit_card_month'))
+    select.select_by_value(config.CC_MONTH)
+    select = Select(driver.find_element_by_id('credit_card_year'))
+    select.select_by_value(config.CC_YEAR)
+
+    time.sleep(2)
+
+    # pay
+    pay_btn = driver.find_element_by_id('pay').find_elements_by_tag_name('input')
+    pay_btn[0].click()
+
 print("Test")
