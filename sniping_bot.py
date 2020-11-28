@@ -1,6 +1,7 @@
 from selenium import webdriver
 from selenium.webdriver.support.ui import Select
 from requests_html import HTMLSession, AsyncHTMLSession
+from webdriver_manager.chrome import ChromeDriverManager
 import time
 
 import config
@@ -73,10 +74,11 @@ def perform_purchase(url):
     '''
     Given url of product, add to cart then checkout
     '''
-
-    driver = webdriver.Chrome()
+    global driver
+    driver = webdriver.Chrome(ChromeDriverManager().install())
     # url = "https://www.supremenewyork.com/shop/shirts/p4skltm3i" #a redirect to a login page occurs
-    btn = driver.find_element_by_id('add-remove-buttons').find_element_by_tag_name('input')
+    driver.get(url)
+    btn = driver.find_element_by_id('add-remove-buttons').find_elements_by_tag_name('input')
     if len(btn) == 0:
         print('not available, DONE')
         return
@@ -100,7 +102,7 @@ def perform_purchase(url):
     # driver.find_element_by_id('store_address').click()
 
     # remove overlay
-    ins_tags = driver.find_element_by_tag_name('ins')
+    ins_tags = driver.find_elements_by_tag_name('ins')
     for el in ins_tags:
         el.click()
 
@@ -116,10 +118,29 @@ def perform_purchase(url):
     select = Select(driver.find_element_by_id('credit_card_year'))
     select.select_by_value(config.CC_YEAR)
 
-    time.sleep(2)
+    time.sleep(5)
 
     # pay
     pay_btn = driver.find_element_by_id('pay').find_elements_by_tag_name('input')
     pay_btn[0].click()
 
-print("Test")
+def main(target_product):
+    urls = get_matched_and_available(target_product)
+    print(f'Found {len(urls)} matches.')
+    if len(urls) == 0:
+        print('No match found - checking again')
+        return
+    print(f'Processing first url: {urls[0]}')
+    # just buy the first match
+    url = urls[0]
+    print(url)
+    perform_purchase(url)
+    print('Done.')
+
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description='Supremebot main parser')
+    parser.add_argument('--name', required=True,
+                        help='Specify product name to find and purchase')
+    args = parser.parse_args()
+    main(target_product=args.name)
